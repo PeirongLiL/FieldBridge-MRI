@@ -1,0 +1,5 @@
+# Environment used by the source processing scripts (Python 3.10.12).
+numpy==1.26.4
+scipy==1.15.3
+nibabel==5.4.2
+SimpleITK==2.5.6

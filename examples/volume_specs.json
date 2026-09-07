@@ -1,0 +1,14 @@
+[
+  {
+    "dataset": "example",
+    "pair_id": "subject001",
+    "subject_id": "subject001",
+    "modality": "T1W",
+    "field_strength": "7T",
+    "source": "inputs/subject001_T1W_7T.nii.gz",
+    "mask_mni": "inputs/subject001_mask_reference.nii.gz",
+    "transform_to_mni": "inputs/subject001_3T_to_reference.h5",
+    "intermediate_reference": "inputs/subject001_T1W_3T.nii.gz",
+    "transform_to_intermediate": "inputs/subject001_7T_to_3T.h5"
+  }
+]

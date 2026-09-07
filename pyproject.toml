@@ -1,0 +1,17 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "fieldbridge-mri"
+version = "1.0.0"
+description = "Paired cross-field brain MRI preparation and MRIxFields data interface"
+requires-python = ">=3.10"
+dependencies = ["numpy>=1.26,<3", "scipy>=1.11", "nibabel>=5.2", "SimpleITK>=2.3"]
+
+[project.scripts]
+fieldbridge-manifest = "fieldbridge.adapter:main"
+fieldbridge-preprocess = "fieldbridge.preprocess:main"
+
+[tool.setuptools.packages.find]
+include = ["fieldbridge*"]
