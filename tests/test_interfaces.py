@@ -7,10 +7,34 @@ from pathlib import Path
 import nibabel as nib
 import numpy as np
 import SimpleITK as sitk
-from fieldbridge.adapter import build_manifest, load_window, challenge_field
+from fieldbridge.adapter import build_manifest, build_task3_manifest, load_window, challenge_field
+from collections import Counter
 from fieldbridge.preprocess import prepare
 
 class Interfaces(unittest.TestCase):
+    def test_full_release_all_modalities(self):
+        pairs = Path(__file__).resolve().parents[1] / 'metadata/pairs.tsv'
+        with tempfile.TemporaryDirectory() as tmp:
+            out = Path(tmp) / 'pairs.csv'
+            self.assertEqual(build_manifest(pairs, out), 518)
+            with out.open(newline='') as f:
+                rows = list(csv.DictReader(f))
+            counts = Counter(r['modality'].replace('-', '') for r in rows)
+            self.assertEqual(counts, {'T1W': 322, 'T2W': 174, 'T2FLAIR': 22})
+            self.assertEqual(len({r['split_group'] for r in rows}), 161)
+            self.assertEqual(build_manifest(pairs, out, False), 259)
+            self.assertEqual(build_task3_manifest(pairs, out, Path(tmp)), 113960)
+            groups = {}
+            with out.open(newline='') as f:
+                for r in csv.DictReader(f):
+                    key = (r['dataset'], r['pair_id'])
+                    groups.setdefault(key, []).append(int(r['slice_idx']))
+                    self.assertTrue(r['source_path'].endswith('#z=' + r['slice_idx']))
+                    self.assertNotEqual(r['source_field'], '64mT')
+                    self.assertIn(r['modality'], ('T1W', 'T2W', 'T2FLAIR'))
+            self.assertEqual(len(groups), 518)
+            self.assertTrue(all(z == list(range(72, 292)) for z in groups.values()))
+
     def test_bidirectional_pairs(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -33,6 +57,9 @@ class Interfaces(unittest.TestCase):
             path=Path(tmp)/'slices.nii.gz'
             arr=np.broadcast_to(np.arange(364,dtype=np.float32),(4,5,364)).copy()
             nib.save(nib.Nifti1Image(arr,np.eye(4)),path)
+            default = load_window(path, 79)
+            self.assertEqual(default.shape, (7,4,5))
+            np.testing.assert_array_equal(default[:,0,0], np.arange(76,83))
             first=load_window(path,72,15)
             self.assertEqual(first.shape,(15,4,5))
             np.testing.assert_array_equal(first[:,0,0],np.clip(np.arange(65,80),72,291))

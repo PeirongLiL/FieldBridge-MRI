@@ -48,12 +48,32 @@ from fieldbridge.adapter import load_pair
 
 with open('paired_bidirectional.csv', newline='') as f:
     row = next(csv.DictReader(f))
-sample = load_pair(row, Path('data'), center=150, width=15)
-print(sample['source'].shape)  # (15, 364, 436)
+sample = load_pair(row, Path('data'), center=150, width=7)
+print(sample['source'].shape)  # (7, 364, 436)
 print(sample['source_field'], sample['target_field'], sample['modality'])
 ```
 
-The loader selects centers in `z=72:292` (zero-based and end-exclusive). At the boundaries it repeats the nearest slice within that interval. Use `width=1` for individual slices. Physical `64mT` labels map to `0.1T` only in the challenge-facing adapter. Tensors are NumPy arrays with axes `(slices, x, y)`; convert them for the model framework you use. Cache decompressed arrays for large training jobs rather than repeatedly decompressing gzip files.
+The default width is seven slices. The paper's training protocol uses centers 79–284 (zero-based, 206 positions), so all seven slices are real, without edge repetition. The general loader also accepts centers in `z=72:292`; at those interval boundaries it repeats the nearest available slice. Explicit `width=15` remains supported for older callers; use `width=1` for individual slices. Physical `64mT` labels map to `0.1T` only in the challenge-facing adapter. Arrays have axes `(slices, x, y)` and retain the released `[0,1]` intensity range. UNSB training maps them to `[-1,1]`. Cache decompressed arrays for large training jobs rather than repeatedly decompressing gzip files.
+
+### Full-data seven-slice training manifest
+
+All available modalities are retained: **161 T1W, 87 T2W and 11 T2-FLAIR pairs**, totaling **259 pairs**. The 161 participant-level groups are used for splitting, not for choosing one modality per participant. Do not deduplicate training pairs by participant alone.
+
+For the revised `full259` MRIxFields loader, export its slice-record schema:
+
+```bash
+fieldbridge-manifest --pairs ./data/pairs.tsv \
+  --output ./external_full259_bidirectional.csv \
+  --task3-slices --data-root ./data
+```
+
+This exports 518 directed pairs × 220 slice records = **113,960 CSV rows**, using absolute `image.nii.gz#z=72` paths. It writes metadata only, not cropped or duplicated images. The training loader assembles 206 seven-slice windows per directed pair, yielding **106,708 external windows**. These overlapping windows are not independent subjects. The schema uses `T2FLAIR` and maps `64mT` to `0.1T`; published metadata preserve the physical field strengths.
+
+Use the full-data manifest in both unpaired pretraining and paired fine-tuning. A checkpoint pretrained on the older 161-pair subset is not a full-data pretraining run. This repository provides the data interface, not the complete UNSB trainer, checkpoints or third-party network implementation. The exporter matches the revised remote loader's field names and slice conventions; regression tests cover all 259 released pairs.
+
+```bash
+python -m unittest discover -s tests -v
+```
 
 ## Preprocess source images
 
