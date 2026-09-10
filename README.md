@@ -1,4 +1,6 @@
-# FieldBridge-MRI
+# MRI-PairedField (public repository: FieldBridge-MRI)
+
+MRI-PairedField is the dataset name used in the manuscript. The public GitHub and Hugging Face repositories retain the release name **FieldBridge-MRI**; both names refer to the same v1.0 dataset.
 
 Unified preparation of eight paired brain MRI sources, with a data interface for MRIxFields2026 Task 3.
 
@@ -54,6 +56,12 @@ print(sample['source_field'], sample['target_field'], sample['modality'])
 ```
 
 The default width is seven slices. The paper's training protocol uses centers 79–284 (zero-based, 206 positions), so all seven slices are real, without edge repetition. The general loader also accepts centers in `z=72:292`; at those interval boundaries it repeats the nearest available slice. Explicit `width=15` remains supported for older callers; use `width=1` for individual slices. Physical `64mT` labels map to `0.1T` only in the challenge-facing adapter. Arrays have axes `(slices, x, y)` and retain the released `[0,1]` intensity range. UNSB training maps them to `[-1,1]`. Cache decompressed arrays for large training jobs rather than repeatedly decompressing gzip files.
+
+### Metadata fields and source labels
+
+`metadata/pairs.tsv` has one row per volume. The fields are `fieldbridge_id` (unique volume identifier), `source_dataset` (stable machine-readable source code), `pair_id` (same-subject pairing key), `modality`, `field_strength`, `paired_field_strength`, `relative_path`, and `split_group` (participant-level grouping key). Join two rows by `source_dataset`, `pair_id` and `modality`; the two rows must have reciprocal field-strength values. Keep all rows with the same `split_group` in one partition.
+
+The source-code mapping is: `openneuro_hfc` = ULF; `zenodo_20281403` = LUMC; `unc` = UNC; `osf` = Subcortical; `adni` = ADNI; `penn` = Penn; `figshare_26075713` = Hippocampal; `lausanne_zenodo1438358` = Vim. The processed derivatives contain 161 subject-level pairings, 259 same-modality pairs and 518 volumes.
 
 ### Full-data seven-slice training manifest
 
@@ -119,8 +127,8 @@ Source-specific acquisition selection and mask preparation are described in [Pro
 
 The release uses one public version number. Internal processing iterations are not separate dataset versions. No MRI model weights or image-translation model are included.
 
-## Sources and citation
+## Sources, access conditions and citation
 
-Please cite the original datasets relevant to your use. Their persistent links are listed in the [dataset card](https://huggingface.co/datasets/lipeirong/FieldBridge-MRI). The FieldBridge-MRI manuscript citation will be added when available.
+Please cite the manuscript under the name MRI-PairedField and the original dataset paper or record for every source used. Access, redistribution and citation remain subject to the original source terms. ADNI is controlled-access and requires the ADNI application and data-use agreement; raw ADNI files are not redistributed here. For the other sources, check the linked record for its current licence or access requirements. The full source table and persistent links are maintained in the [Hugging Face dataset card](https://huggingface.co/datasets/lipeirong/FieldBridge-MRI).
 
 Relevant methods include [N4ITK](https://doi.org/10.54294/jculxw), [SynthSeg](https://doi.org/10.1016/j.media.2023.102789) and [BIDS](https://doi.org/10.1038/sdata.2016.44). The MRIxFields adapter follows the collection's existing Task 3 workflow and is not an official challenge repository.
